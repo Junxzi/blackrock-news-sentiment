@@ -17,7 +17,7 @@
 ---
 
 ## ディレクトリ構成
-
+```
 project/
 ├── data/ # ニュース＆分析用CSV
 ├── notebooks/ # 分析・可視化Notebook
@@ -28,7 +28,7 @@ project/
 │ └── (その他分析補助コード)
 ├── README.md
 ├── pyproject.toml
-
+```
 
 ---
 
