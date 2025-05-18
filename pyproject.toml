@@ -7,7 +7,17 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+requests = "^2.32.3"
+pandas = "^2.2.3"
+dotenv = "^0.9.9"
+python-dotenv = "^1.1.0"
+transformers = "^4.51.3"
+torch = "^2.7.0"
+hf-xet = "^1.1.2"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
 
 [build-system]
 requires = ["poetry-core"]
