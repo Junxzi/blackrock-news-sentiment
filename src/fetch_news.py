@@ -1,45 +1,69 @@
+from datetime import datetime, timedelta
+import requests
 import os
 import sys
-from dotenv import load_dotenv
-import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
-# ✅ APIキー読み込み
 load_dotenv()
+
+def safe_parse_datetime(ts):
+    try:
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
+    except (TypeError, ValueError, OSError):
+        return None
+    
+
 API_KEY = os.getenv("FINNHUB_API_KEY")
 
-# ✅ ティッカーをコマンドライン引数から取得
-if len(sys.argv) < 2:
-    print("Usage: python fetch_news_finnhub.py TICKER")
-    sys.exit(1)
+ticker = sys.argv[1] if len(sys.argv) > 1 else "BLK"
 
-ticker = sys.argv[1].upper()
-print(f"Fetching news for: {ticker}")
+def fetch_news(ticker, from_date, to_date):
+    url = f"https://finnhub.io/api/v1/company-news?symbol={ticker}&from={from_date}&to={to_date}&token={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"⚠️ Error {response.status_code} for {from_date} ~ {to_date}")
+        return []
 
-# 📅 取得期間（過去N日分）
-N_DAYS = 90
-to_date = datetime.today()
-from_date = to_date - timedelta(days=N_DAYS)
-from_str = from_date.strftime("%Y-%m-%d")
-to_str = to_date.strftime("%Y-%m-%d")
+# ✅ ターゲット期間を1年間に設定
+today = datetime.today()
+start_date = today - timedelta(days=365)
 
-# 🌐 APIリクエスト
-url = (
-    f"https://finnhub.io/api/v1/company-news"
-    f"?symbol={ticker}&from={from_str}&to={to_str}&token={API_KEY}"
-)
-response = requests.get(url)
-articles = response.json()
+# ニュースをまとめて格納
+all_news = []
+
+# ✅ 90日ずつ分割して取得
+window_size = 90
+current_start = start_date
+
+while current_start < today:
+    current_end = min(current_start + timedelta(days=window_size - 1), today)
+    from_str = current_start.strftime("%Y-%m-%d")
+    to_str = current_end.strftime("%Y-%m-%d")
+    
+    print(f"📦 Fetching: {from_str} → {to_str}")
+    news_batch = fetch_news(ticker, from_str, to_str)
+    all_news.extend(news_batch)
+
+    current_start += timedelta(days=window_size)
+
+# ✅ CSV保存
+df = pd.DataFrame(all_news)
+save_path = f"data/{ticker}_news_finnhub_full.csv"
+df.to_csv(save_path, index=False)
+print(f"✅ 保存完了: {save_path}（記事数: {len(df)}）")
+
 
 # 📝 データ整形
 df = pd.DataFrame([{
-    "datetime": datetime.fromtimestamp(article["datetime"]).strftime("%Y-%m-%d %H:%M"),
-    "headline": article["headline"],
-    "summary": article["summary"],
-    "url": article["url"],
-    "source": article["source"]
-} for article in articles])
+    "datetime": safe_parse_datetime(article.get("datetime")),
+    "headline": article.get("headline"),
+    "summary": article.get("summary"),
+    "url": article.get("url"),
+    "source": article.get("source")
+} for article in all_news])
 
 # 💾 保存
 today = datetime.today().strftime("%Y%m%d")

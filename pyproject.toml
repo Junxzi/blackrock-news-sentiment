@@ -14,6 +14,8 @@ python-dotenv = "^1.1.0"
 transformers = "^4.51.3"
 torch = "^2.7.0"
 hf-xet = "^1.1.2"
+scipy = "^1.15.3"
+ace-tools = "^0.0"
 
 
 [tool.poetry.group.dev.dependencies]
